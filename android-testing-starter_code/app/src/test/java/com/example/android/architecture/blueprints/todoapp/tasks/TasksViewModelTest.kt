@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.android.architecture.blueprints.todoapp.data.Task
+import com.example.android.architecture.blueprints.todoapp.data.source.FakeTestRepository
 import org.hamcrest.Matchers.not
 import org.hamcrest.Matchers.nullValue
 import org.hamcrest.MatcherAssert.assertThat
@@ -16,8 +18,10 @@ import org.hamcrest.Matchers.`is`
 import org.junit.Before
 
 @Config(sdk = [31])
-@RunWith(AndroidJUnit4::class)
+//@RunWith(AndroidJUnit4::class)
 class TasksViewModelTest {
+
+    private lateinit var tasksRepository: FakeTestRepository
 
     private lateinit var tasksViewModel: TasksViewModel
 
@@ -26,7 +30,13 @@ class TasksViewModelTest {
 
     @Before
     fun setupViewModel(){
-        tasksViewModel = TasksViewModel(ApplicationProvider.getApplicationContext())
+        tasksRepository = FakeTestRepository()
+        val task1 = Task("Title1", "Description1")
+        val task2 = Task("Title2", "Description2", true)
+        val task3 = Task("Title3", "Description3", true)
+        tasksRepository.addTasks(task1, task2, task3)
+
+        tasksViewModel = TasksViewModel(tasksRepository)
     }
 
     @Test
