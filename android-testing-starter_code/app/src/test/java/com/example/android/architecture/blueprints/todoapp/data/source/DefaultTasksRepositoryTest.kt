@@ -1,5 +1,6 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
+import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule
 import com.example.android.architecture.blueprints.todoapp.data.Result
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import kotlinx.coroutines.Dispatchers
@@ -12,10 +13,15 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Rule
 
 
 @ExperimentalCoroutinesApi
 class DefaultTasksRepositoryTest {
+
+    @ExperimentalCoroutinesApi
+    @get:Rule
+    val mainCoroutineRule = MainCoroutineRule()
 
     private val task1 = Task("Title1", "Description1")
     private val task2 = Task("Title2", "Description2")
@@ -35,9 +41,11 @@ class DefaultTasksRepositoryTest {
         tasksRemoteDataSource = FakeDataSource(remoteTasks.toMutableList())
         tasksLocalDataSource = FakeDataSource(localTasks.toMutableList())
         tasksRepository = DefaultTasksRepository(
-            tasksRemoteDataSource, tasksLocalDataSource, Dispatchers.Unconfined
+            tasksRemoteDataSource, tasksLocalDataSource, Dispatchers.Main
         )
+        //Dispatcher.MainはRuleによってtestDispatcherに置き換えられる
     }
+
 
     @Test
     fun getTasks_requestsAllTasksFromRemoteDataSource() = runTest {

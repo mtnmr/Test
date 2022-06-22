@@ -2,34 +2,63 @@ package com.example.android.architecture.blueprints.todoapp.data.source
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.map
 import com.example.android.architecture.blueprints.todoapp.data.Result
+import com.example.android.architecture.blueprints.todoapp.data.Result.Error
+import com.example.android.architecture.blueprints.todoapp.data.Result.Success
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import kotlinx.coroutines.runBlocking
+import java.util.LinkedHashMap
 
-class FakeTestRepository: TasksRepository {
 
-    var tasksServiceData :LinkedHashMap<String, Task> = LinkedHashMap()
+class FakeTestRepository : TasksRepository {
+
+    var tasksServiceData: LinkedHashMap<String, Task> = LinkedHashMap()
 
     private val observableTasks = MutableLiveData<Result<List<Task>>>()
 
-    fun addTasks(vararg tasks:Task){
-        for (task in tasks){
-            tasksServiceData[task.id] = task
-        }
-        runBlocking { refreshTasks() }
-    }
-
-    override suspend fun getTasks(forceUpdate: Boolean): Result<List<Task>> {
-        return Result.Success(tasksServiceData.values.toList())
-    }
 
     override suspend fun refreshTasks() {
         observableTasks.value = getTasks()
     }
 
+    override suspend fun refreshTask(taskId: String) {
+        refreshTasks()
+    }
+
     override fun observeTasks(): LiveData<Result<List<Task>>> {
         runBlocking { refreshTasks() }
         return observableTasks
+    }
+
+    override fun observeTask(taskId: String): LiveData<Result<Task>> {
+        runBlocking { refreshTasks() }
+        return observableTasks.map { tasks ->
+            when (tasks) {
+                is Result.Loading -> Result.Loading
+                is Error -> Error(tasks.exception)
+                is Result.Success -> {
+                    val task = tasks.data.firstOrNull() { it.id == taskId }
+                        ?: return@map Error(Exception("Not found"))
+                    Result.Success(task)
+                }
+            }
+        }
+    }
+
+    override suspend fun getTask(taskId: String, forceUpdate: Boolean): Result<Task> {
+        tasksServiceData[taskId]?.let {
+            return Success(it)
+        }
+        return Error(Exception("Could not find task"))
+    }
+
+    override suspend fun getTasks(forceUpdate: Boolean): Result<List<Task>> {
+        return Success(tasksServiceData.values.toList())
+    }
+
+    override suspend fun saveTask(task: Task) {
+        tasksServiceData[task.id] = task
     }
 
     override suspend fun completeTask(task: Task) {
@@ -38,43 +67,41 @@ class FakeTestRepository: TasksRepository {
         refreshTasks()
     }
 
-    override suspend fun refreshTask(taskId: String) {
-        TODO("Not yet implemented")
-    }
-
-    override fun observeTask(taskId: String): LiveData<Result<Task>> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun getTask(taskId: String, forceUpdate: Boolean): Result<Task> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun saveTask(task: Task) {
-        TODO("Not yet implemented")
-    }
-
     override suspend fun completeTask(taskId: String) {
-        TODO("Not yet implemented")
+        // Not required for the remote data source.
+        throw NotImplementedError()
     }
 
     override suspend fun activateTask(task: Task) {
-        TODO("Not yet implemented")
+        val activeTask = task.copy(isCompleted = false)
+        tasksServiceData[task.id] = activeTask
+        refreshTasks()
     }
 
     override suspend fun activateTask(taskId: String) {
-        TODO("Not yet implemented")
+        throw NotImplementedError()
     }
 
     override suspend fun clearCompletedTasks() {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun deleteAllTasks() {
-        TODO("Not yet implemented")
+        tasksServiceData = tasksServiceData.filterValues {
+            !it.isCompleted
+        } as LinkedHashMap<String, Task>
     }
 
     override suspend fun deleteTask(taskId: String) {
-        TODO("Not yet implemented")
+        tasksServiceData.remove(taskId)
+        refreshTasks()
+    }
+
+    override suspend fun deleteAllTasks() {
+        tasksServiceData.clear()
+        refreshTasks()
+    }
+
+    fun addTasks(vararg tasks: Task) {
+        for (task in tasks) {
+            tasksServiceData[task.id] = task
+        }
+        runBlocking { refreshTasks() }
     }
 }
