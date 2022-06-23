@@ -95,5 +95,5 @@ dependencies {
     androidTestImplementation "com.linkedin.dexmaker:dexmaker-mockito:$dexMakerVersion"
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$espressoVersion"
 
-
+    androidTestImplementation "androidx.arch.core:core-testing:$archTestingVersion"
 }
